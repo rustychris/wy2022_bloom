@@ -1,0 +1,4 @@
+.ipynb_checkpoints
+*.log
+run_wy2022*
+waq_tables_local
