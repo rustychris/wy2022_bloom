@@ -2,3 +2,8 @@
 *.log
 run_wy2022*
 waq_tables_local
+*.mp4
+cache
+frames-*
+swim_frames_v0
+depth-avg-growth-rates.nc
