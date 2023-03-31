@@ -7,3 +7,7 @@ cache
 frames-*
 swim_frames_v0
 depth-avg-growth-rates.nc
+__pycache__
+*~
+dfm_spinup
+data_*
