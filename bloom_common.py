@@ -6,7 +6,7 @@ import xarray as xr
 import pandas as pd
 
 from stompy.spatial import field
-from stompy import utils
+from stompy import utils, memoize
 import stompy.model.delft.dflow_model as dfm
 import stompy.model.delft.waq_scenario as dwaq
 from stompy.grid import unstructured_grid
@@ -51,7 +51,7 @@ def load_chl_scenes():
 
 
 
-def load_scene(dim_path):
+def load_scene(dim_path,fill_coordinates=True):
     scene_dir=dim_path.replace('.dim','.data')
     #os.path.join(chl_data_dir,"20220821_BandMath_BandMath.data")
 
@@ -66,20 +66,33 @@ def load_scene(dim_path):
     layer_flds[2].F = 1e-6 * layer_flds[2].F
     
     xyz=np.stack( [layer_flds[2].F, layer_flds[1].F, layer_flds[0].F]).transpose([1,2,0])
+
+    if fill_coordinates:
+        ll=xyz[:,:,:2]
+        valid=(np.isfinite(ll)) & (ll>-185) & (ll<365)
+        valid=np.all(valid,axis=2)
+        utils.fill_curvilinear(xyz[:,:,:2],xy_valid=valid)
     return xyz
 
-
-def load_scene_utm(dim_path,clip=None):
+@memoize.memoize(lru=10)
+def load_scene_utm(dim_path,clip=None,ravel=True):
     """
-    project to utm and ravel
+    project to utm with optional ravel and clip
     """
-    xym=load_scene(dim_path).reshape(-1,3)
-    utm_xy = proj_utils.mapper("WGS84","EPSG:26910")(xym[:,:2])
-    m=xym[:,2]
+    xym=load_scene(dim_path)
+    if ravel:
+        xym=xym.reshape(-1,3)
+    utm_xy = proj_utils.mapper("WGS84","EPSG:26910")(xym[...,:2])
+    m=xym[...,2]
     if clip is not None:
         m=m.clip(0,clip)
-    return np.c_[utm_xy[:,0],utm_xy[:,1],m]
-
+    if ravel:
+        return np.c_[utm_xy[:,0],utm_xy[:,1],m]
+    else:
+        xym=xym.copy()
+        xym[...,:2] = utm_xy
+        xym[...,2] = m
+        return xym
 
 def configure_dfm_t140737():
     DELFT_SRC="/opt/software/delft/dfm/t140737"
@@ -103,3 +116,9 @@ def configure_dfm_2023_01():
     # While mucking around with this just clobber whatever was in LD_LIBRARY_PATH
     os.environ['LD_LIBRARY_PATH']=DELFT_LIB
  
+def plot_xyz(xyz,ax=None,**kw):
+    # expand pixel center ll to pixel corners
+    x_corners,y_corners=utils.center_to_edge_2d(xyz[:,:,0],xyz[:,:,1])
+    if ax is None:
+        ax=plt.gca()
+    return ax.pcolormesh( x_corners, y_corners, xyz[...,2], **kw)
