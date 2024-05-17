@@ -16,7 +16,7 @@ def k_indef(z,Kd,I0,Isat):
     """
     
     # Avoid divzero (creates a lower bound of about 1e-15 on light limitation)
-    I0=np.clip(I0,1e-12,2000)
+    #I0=np.clip(I0,1e-12,2000)
     if isinstance(z,np.ndarray):
         z=z.astype(np.float64)
     # logaddexp does a transformation behind the scenes that makes it numerically stable.
