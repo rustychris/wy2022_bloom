@@ -1,0 +1,336 @@
+bottom:
+  h0b: 0.03
+buoyancy:
+  NN_ini: 0.0001
+cvmix:
+  interior:
+    background:
+      diffusivity: 1.0e-05
+      use: false
+      viscosity: 0.0001
+    convection:
+      basedOnBVF: true
+      diffusivity: 1.0
+      triggerBVF: 0.0
+      use: false
+      viscosity: 1.0
+    double_diffusion:
+      use: false
+    shear:
+      KPP_Ri_zero: 0.7
+      KPP_exp: 3.0
+      KPP_nu_zero: 0.005
+      PP_alpha: 5.0
+      PP_exp: 2.0
+      PP_nu_zero: 0.005
+      mix_scheme: kpp
+      num_smooth_Ri: 1
+      use: false
+    tidal_mixing:
+      use: false
+    use: false
+  surface_layer:
+    kpp:
+      OBL_interp_type: lmd94
+      Ri_c: 0.3
+      bulk_Ri_interp_type: quadratic
+      check_Ekman_length: false
+      check_MonOb_length: false
+      langmuir_method: none
+      match_technique: simple
+      surface_layer_extent: 0.1
+      use: true
+      use_enhanced_diff: true
+      use_noDGat1: true
+    use: true
+equation_of_state:
+  linear:
+    S0: 35.0
+    T0: 10.0
+    dsr0: 0.78
+    dtr0: -0.17
+    p0: 0.0
+  method: full_teos-10
+  rho0: 1027.0
+fabm:
+  feedbacks:
+    albedo: false
+    shade: false
+    surface_drag: false
+  freshwater_impact: true
+  input: null
+  repair_state: false
+  use: true
+grid:
+  ddl: 0.0
+  ddu: 0.0
+  file: null
+  method: analytical
+  nlev: 110
+light_extinction:
+  A:
+    column: 1
+    constant_value: 0.7
+    file: null
+    method: constant
+  g1:
+    column: 1
+    constant_value: 0.4
+    file: null
+    method: constant
+  g2:
+    column: 1
+    constant_value: 8.0
+    file: null
+    method: constant
+  method: jerlov-i
+location:
+  depth: 110.0
+  latitude: 0.0
+  longitude: 0.0
+  name: Rouse profile
+mimic_3d:
+  ext_pressure:
+    dpdx:
+      column: 1
+      constant_value: 1.0e-06
+      file: null
+      method: constant
+      tidal:
+        amp_1: 0.0
+        amp_2: 0.0
+        phase_1: 0.0
+        phase_2: 0.0
+    dpdy:
+      column: 1
+      constant_value: 0.0
+      file: null
+      method: constant
+      tidal:
+        amp_1: 0.0
+        amp_2: 0.0
+        phase_1: 0.0
+        phase_2: 0.0
+    h:
+      column: 1
+      constant_value: 0.0
+      file: null
+      method: constant
+    period_1: 44714.0
+    period_2: 43200.0
+    type: elevation
+  int_pressure:
+    gradients:
+      dsdx:
+        column: 1
+        constant_value: 0.0
+        file: null
+        method: false
+      dsdy:
+        column: 1
+        constant_value: 0.0
+        file: null
+        method: false
+      dtdx:
+        column: 1
+        constant_value: 0.0
+        file: null
+        method: false
+      dtdy:
+        column: 1
+        constant_value: 0.0
+        file: null
+        method: false
+    plume:
+      type: bottom
+      x_slope: 0.0
+      y_slope: 0.0
+    s_adv: false
+    t_adv: false
+    type: none
+  w:
+    adv_discr: p2_pdm
+    height:
+      column: 1
+      constant_value: 0.0
+      file: null
+      method: constant
+    max:
+      column: 1
+      constant_value: 0.0
+      file: null
+      method: false
+  zeta:
+    column: 1
+    constant_value: 0.0
+    file: null
+    method: constant
+    tidal:
+      amp_1: 1.0
+      amp_2: 0.5
+      period_1: 44714.0
+      period_2: 43200.0
+      phase_1: 0.0
+      phase_2: 0.0
+o2:
+  scale_factor: 31.25
+output:
+  rouse:
+    time_method: point
+    time_step: 24
+    time_unit: dt
+    variables:
+    - source: /*
+restart:
+  load: false
+salinity:
+  NN: 0.000256
+  column: 1
+  constant_value: 20.0
+  file: null
+  method: false
+  relax:
+    tau: 86400.0
+    tau_b: 86400.0
+    tau_s: 86400.0
+  two_layer:
+    s_b: 15.0
+    s_s: 20.0
+    z_b: 40.0
+    z_s: 30.0
+  type: practical
+surface:
+  airp:
+    column: 3
+    constant_value: 0.0
+    file: null
+    method: file
+    scale_factor: 100.0
+  airt:
+    column: 4
+    constant_value: 0.0
+    file: null
+    method: file
+  albedo:
+    constant_value: 0.0
+    method: constant
+  calc_evaporation: false
+  cloud:
+    column: 6
+    constant_value: 0.0
+    file: null
+    method: file
+  fluxes:
+    heat:
+      column: 1
+      constant_value: 0.0
+      file: null
+      method: constant
+    method: false
+    tx:
+      column: 1
+      constant_value: 0.0
+      file: null
+      method: constant
+    ty:
+      column: 1
+      constant_value: 0.0
+      file: null
+      method: constant
+  hum:
+    column: 5
+    constant_value: 0.0
+    file: null
+    method: file
+    type: relative
+  ice:
+    H: 0.0
+    model: no_ice
+  longwave_radiation:
+    column: 1
+    file: null
+    method: clark
+  precip:
+    column: 1
+    constant_value: 0.0
+    file: null
+    flux_impact: false
+    method: constant
+  roughness:
+    charnock: true
+    charnock_val: 1400.0
+    z0s_min: 0.02
+  ssuv_method: absolute
+  swr:
+    column: 1
+    constant_value: 0.0
+    file: null
+    method: constant
+  u10:
+    column: 1
+    constant_value: 0.0
+    file: null
+    method: file
+  v10:
+    column: 2
+    constant_value: 0.0
+    file: null
+    method: file
+temperature:
+  NN: 0.000256
+  column: 1
+  constant_value: 20.0
+  file: null
+  method: false
+  relax:
+    tau: 1000000000000000.0
+  two_layer:
+    t_b: 15.0
+    t_s: 20.0
+    z_b: 40.0
+    z_s: 30.0
+  type: in-situ
+time:
+  dt: 36.0
+  start: 1998-01-01 00:00:00
+  stop: 1998-01-02 00:00:00
+title: GOTM Simulation
+turbulence:
+  generic:
+    cpsi1: 1.0
+    cpsi2: 1.22
+    cpsi3minus: 0.05
+    gen_m: 1.0
+    gen_n: -0.67
+    sig_kpsi: 0.8
+    sig_psi: 1.07
+  iw:
+    alpha: 0.7
+  keps:
+    ce3minus: -0.4
+  len_scale_method: dissipation
+  my:
+    length: linear
+  scnd:
+    method: quasi_eq
+    scnd_coeff: cheng
+  stab_method: schumann_gerz
+  tke_method: tke
+  turb_method: second_order
+  turb_param:
+    Prandtl0_fix: 0.74
+    Ri_st: 0.25
+    cm0_fix: 0.5477
+    compute_c3: true
+    compute_kappa: false
+    const_nuh: 0.0005
+    const_num: 0.0005
+    cw: 100.0
+    eps_min: 1.0e-12
+    epsb_min: 1.0e-14
+    galp: 0.53
+    k_min: 1.0e-10
+    kappa: 0.4
+    kb_min: 1.0e-10
+    length_lim: true
+version: 7

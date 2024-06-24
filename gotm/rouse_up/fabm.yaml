@@ -1,0 +1,8 @@
+instances:
+  sed:
+    initialization:
+      c: 1.0
+    long_name: sediment
+    model: bb/passive
+    parameters:
+      vertical_velocity: 10.0
