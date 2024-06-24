@@ -35,9 +35,11 @@ def fetch_or_load_daily_avhrr_cropped():
 
     return ds
 
-def add_watermask(ds,grid):
+def add_watermask(ds,grid,extra_poly=None):
     water=np.zeros(ds.x.shape,bool)
     grid_poly = grid.boundary_polygon()
+    if extra_poly is not None:
+        grid_poly = grid_poly.union(extra_poly)
     poly = prepared.prep(grid_poly)
 
     for idx in np.ndindex(ds.x.shape):
