@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from stompy.spatial import proj_utils
-from stompy import memoize
+from stompy import memoize, utils
 from stompy.io.local import noaa_coops, usgs_nwis
 
 wy2022_bloom = os.path.dirname(__file__)
@@ -79,3 +79,20 @@ def all_stations():
     insitu_df = pd.concat(station_dfs)
     return insitu_df
 
+# SF Buoy data for ocean BC:
+# 46062 is SF buoy - water temp, no air temp
+# 46237 is SF Bar - water and air temp
+
+# regular NOAA station for Richmond - 9414863 
+# Also check Port Chicago for air temp
+def sf_buoy_data():
+    # returns xr.DataArray for water temperature with a time dimension 
+    url="https://www.ndbc.noaa.gov/view_text_file.php?filename=46026h2022.txt.gz&dir=data/historical/stdmet/"
+    sf_buoy_cache = "cache/sf_buoy_2022.csv"
+    utils.download_url(url, local_file = sf_buoy_cache, on_abort='remove')
+    
+    from stompy.io.local import ndbc
+    sf_buoy = ndbc.parse_txt(sf_buoy_cache)
+    sf_buoy['WTMP'] = utils.fill_invalid(sf_buoy.WTMP.values)
+    da = sf_buoy.set_index('time')['WTMP'].to_xarray()
+    return da
