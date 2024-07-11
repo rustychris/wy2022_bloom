@@ -27,3 +27,5 @@ rotodfm_v*
 /rs_chl/
 /sfbofs/*.nc
 /tide_and_solar/*.png
+cimis_combined-20100101-20231001.nc
+/plot_dfm_bloom_tracers_v01-backup.ipynb
