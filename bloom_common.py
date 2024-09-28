@@ -275,3 +275,36 @@ NH4         {flux:10}    -1.00000
 END
 """
     return process
+
+
+
+# Post-processing:
+@memoize.memoize(lru=5)
+def load_model(run_dir):
+    model = dfm.DFlowModel.load(run_dir)
+
+    grid=model.grid
+    M=grid.smooth_matrix()
+    @utils.add_to(model)
+    def fill(self,values,iterations=50):
+        valid=np.isfinite(values)
+        data=np.where(valid,values,0.0)
+        weight=np.where(valid,1,0.0)
+        for _ in range(iterations):
+            data=M.dot(data)
+            weight=M.dot(weight)
+            data[valid]=values[valid]
+            weight[valid]=1.0
+        result=np.full(len(values),np.nan)
+        valid=weight>1e-4
+        result[valid]=data[valid]/weight[valid]
+        return result
+
+    return model
+
+def ratio(a,b,b_min=1e-8):
+    a_b = a/b.clip(b_min)
+    # avoid using np.where, since it loses xarray dimensions.
+    a_b[b<b_min] = np.nan
+    return a_b
+
