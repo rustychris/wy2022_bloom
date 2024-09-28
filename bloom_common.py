@@ -14,6 +14,7 @@ from stompy.grid import unstructured_grid
 import matplotlib.pyplot as plt
 import logging as log
 from scipy.interpolate import griddata
+from scipy import ndimage
 from stompy.spatial import proj_utils
 import numpy as np
 
@@ -308,3 +309,31 @@ def ratio(a,b,b_min=1e-8):
     a_b[b<b_min] = np.nan
     return a_b
 
+
+
+# rs_chl_dir="/richmondvol1/lawrences/outputs_2022/07_reproject_3"
+# 2024-09-11: 07_reproject_3 no longer exists.
+# Assuming this is best to use:
+rs_chl_dir="/richmondvol1/lawrences/outputs_2022/07_reproject_re10_sfei"
+
+def chl_from_RS(t,grid_poly):
+    patt = os.path.join(rs_chl_dir, f"{utils.strftime(t,'%Y%m%d')}_S3*_OL_NT_CHL_LOG10.img")
+    hits=glob.glob(patt)
+    if not hits:
+        return None
+    #scene="20220807_S3A_OL_NT_CHL_LOG10.img" # decent, though getting late.
+    #rs_chl_fn=os.path.join(rs_chl_dir,scene)
+    rs_chl_fn=hits[0]
+    rs_chl_log10 = field.GdalGrid(rs_chl_fn)
+    
+    # clip and remove specks.    
+    valid = np.isfinite(rs_chl_log10.F)
+    valid = valid & rs_chl_log10.polygon_mask(grid_poly) 
+    rs_chl_log10.F[~valid]=np.nan
+    rs_chl_log10.F = ndimage.median_filter(rs_chl_log10.F,size=3)
+    # rs_chl_log10.F[ rs_chl_log10.F<1.0 ] = 0.0
+        
+    chl_IC = rs_chl_log10.copy()
+    chl_IC.F = 10**chl_IC.F    
+        
+    return chl_IC

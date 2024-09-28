@@ -16,6 +16,8 @@ class TracerGroup:
     initial=None
     suffix=None
     initial_release=True # all tracer was added in initial condition.
+    IsatA=10.0 # Isat used for kRadA tracer
+    IsatB=20.0 # Isat used for kRadB tracer
     
     def __init__(self,**kw):
         utils.set_keywords(self,kw)
@@ -83,6 +85,46 @@ class TracerGroup:
     
         return tran
 
+    @memoize.imemoize(lru=5)
+    def extract_tracers(self,tidx,layer,Isat=10.0,thresh=1e-5, light_lim='mean_lim'):
+        # Extraction
+        # instantaneous release, so age is a given.
+        t=self.ds.time.isel(time=tidx).values
+        age_d = (t - self.ds.time.values[0]) / np.timedelta64(86400,'s')
+
+        assert layer!='mean'
+
+        snap=self.ds.isel(time=tidx,laydim=layer)
+        conc  = snap[f'conc{self.suffix}'].values
+
+        if light_lim=='lim_mean':
+            # average irradiance accounting for Kd, vertical mixing.
+            Imean = ratio( snap[f'radc{self.suffix}'].values, conc*age_d, thresh)
+            kLight = Imean/(Imean + Isat)
+        elif light_lim=='mean_lim':
+            Imean = None
+            if Isat==self.IsatA:
+                kLight = ratio( snap[f'kRadA{self.suffix}'].values, conc*age_d, thresh)
+            elif Isat==self.IsatB:
+                kLight = ratio( snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)            
+            else:            
+                kLightA = ratio( snap[f'kRadA{self.suffix}'].values, conc*age_d, thresh)
+                kLightB = ratio( snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)
+
+                # Fit the line directly
+                log_kLightA = np.log(kLightA)
+                log_kLightB = np.log(kLightB)
+                log_kLight_slope = (log_kLightB - log_kLightA) / (self.IsatB - self.IsatA)
+                # m*IsatA+b=log_fA
+                log_kLight0 = log_kLightA - log_kLight_slope*self.IsatA
+                kLight0 = np.exp(log_kLight0)
+                kLight = kLight0*np.exp(log_kLight_slope*Isat)
+
+        #Imean[np.isnan(Imean)]=0.0 
+        #kLight = fill(kLight, iterations=120)
+        print(f"kLight: {np.isnan(kLight).sum()} missing values, thresh={thresh}")
+        return dict(age_d=age_d, conc=conc, kLight=kLight, Imean=Imean, t=t)  
+    
     @memoize.imemoize()
     def profile_cell_dists(self,linestring):
         return self.grid.select_cells_intersecting(linestring,order=True,return_distance=True)
