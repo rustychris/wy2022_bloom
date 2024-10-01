@@ -16,8 +16,13 @@ class TracerGroup:
     initial=None
     suffix=None
     initial_release=True # all tracer was added in initial condition.
+    temp=True # has temperature
+    hor_diff=0.0 # added diffusion
     IsatA=10.0 # Isat used for kRadA tracer
     IsatB=20.0 # Isat used for kRadB tracer
+
+    # cart_fac=1.07**5 # correction for no-temp run in some cases
+    cart_fac=1.0 # bug in CART process means no-temp run have 1.07**-5 factor
     
     def __init__(self,**kw):
         utils.set_keywords(self,kw)
@@ -39,8 +44,12 @@ class TracerGroup:
             return self.ds[vname]
         elif k=='age' and self.initial_release:
             return (self.ds.time - self.ds.time[0])/np.timedelta64(24,'h')
+        elif k in self.ds:
+            return self.ds[k]
         else:
-            raise Exception(f"Can't handle field {k}")
+            return None
+        #else:
+        #    raise Exception(f"Can't handle field {k}")
 
     @property
     def tracer_short_name(self):
@@ -85,7 +94,7 @@ class TracerGroup:
     
         return tran
 
-    @memoize.imemoize(lru=5)
+    @memoize.imemoize(lru=10)
     def extract_tracers(self,tidx,layer,Isat=10.0,thresh=1e-5, light_lim='mean_lim'):
         # Extraction
         # instantaneous release, so age is a given.
@@ -99,21 +108,21 @@ class TracerGroup:
 
         if light_lim=='lim_mean':
             # average irradiance accounting for Kd, vertical mixing.
-            Imean = ratio( snap[f'radc{self.suffix}'].values, conc*age_d, thresh)
+            Imean = ratio( self.cart_fac*snap[f'radc{self.suffix}'].values, conc*age_d, thresh)
             kLight = Imean/(Imean + Isat)
         elif light_lim=='mean_lim':
             Imean = None
             if Isat==self.IsatA:
-                kLight = ratio( snap[f'kRadA{self.suffix}'].values, conc*age_d, thresh)
+                kLight = ratio( self.cart_fac * snap[f'kRadA{self.suffix}'].values, conc*age_d, thresh)
             elif Isat==self.IsatB:
-                kLight = ratio( snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)            
+                kLight = ratio( self.cart_fac*snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)            
             else:            
-                kLightA = ratio( snap[f'kRadA{self.suffix}'].values, conc*age_d, thresh)
-                kLightB = ratio( snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)
+                kLightA = ratio( self.cart_fac * snap[f'kRadA{self.suffix}'].values, conc*age_d, thresh)
+                kLightB = ratio( self.cart_fac * snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)
 
                 # Fit the line directly
-                log_kLightA = np.log(kLightA)
-                log_kLightB = np.log(kLightB)
+                log_kLightA = np.log(kLightA.clip(1e-5,1.0))
+                log_kLightB = np.log(kLightB.clip(1e-5,1.0))
                 log_kLight_slope = (log_kLightB - log_kLightA) / (self.IsatB - self.IsatA)
                 # m*IsatA+b=log_fA
                 log_kLight0 = log_kLightA - log_kLight_slope*self.IsatA
@@ -122,7 +131,7 @@ class TracerGroup:
 
         #Imean[np.isnan(Imean)]=0.0 
         #kLight = fill(kLight, iterations=120)
-        print(f"kLight: {np.isnan(kLight).sum()} missing values, thresh={thresh}")
+        #print(f"kLight: {np.isnan(kLight).sum()} missing values, thresh={thresh}")
         return dict(age_d=age_d, conc=conc, kLight=kLight, Imean=Imean, t=t)  
     
     @memoize.imemoize()
@@ -217,4 +226,81 @@ class TracerGroup:
         return fig
 
     
-#depth_ref=ds['TotalDepth'].isel(layer=0,face=c_ref)
+# Spinup
+#run_dir="bloom_tracers_v01/run_20220801T0000_20220804T0000_v01"
+# Main run
+#run_dir="bloom_tracers_v01/run_20220804T0000_20220830T0000_v00"
+
+# 2024-06-28: improved temperature field, 3 choices of swimming
+#run_dir="bloom_tracers_v09/run_20220804T1820_20220830T0000_v01"
+#swim_speeds=[5,10,0]
+
+# 2024-07-10ish: fix bug in initial condition, small and large release from RS.
+# Failed 3 days early due to full disk.
+#run_dir="bloom_tracers_v10/run_20220804T1820_20220830T0000_v00"
+#swim_speeds=[5,10,0,5,10,0]
+#initial_conds=['alameda','alameda','alameda','southbay','southbay','southbay']
+
+# no temperature run -- only 5 days in as of 2024-07-23
+# run_dir="bloom_tracers_v11/run_20220804T1820_20220830T0000_v00"
+# swim_speeds=[5,10,0,5,10,0]
+# initial_conds=['alameda','alameda','alameda','southbay','southbay','southbay']
+
+tracer_groups=[]
+
+run_dir="bloom_tracers_v12/run_20220804T1820_20220830T0000_v00"
+
+# 2024-08-30: v12 -- lots of tracers, uniform and chl_from_rs
+# v12: lagrangian and uniform, includes diurnal swimming, 80um/day swimming
+tracer_groups += [
+    TracerGroup(tag='v12',suffix=0,run_dir=run_dir,swim=5,     initial='alameda'),
+    TracerGroup(tag='v12',suffix=1,run_dir=run_dir,swim=10,    initial='alameda'),
+    TracerGroup(tag='v12',suffix=2,run_dir=run_dir,swim=0,     initial='alameda'),
+    TracerGroup(tag='v12',suffix=3,run_dir=run_dir,swim=6.912, initial='alameda'),
+    TracerGroup(tag='v12',suffix=4,run_dir=run_dir,swim=6.912j,initial='alameda'),
+    TracerGroup(tag='v12',suffix=5,run_dir=run_dir,swim=5,     initial='uniform'),
+    TracerGroup(tag='v12',suffix=6,run_dir=run_dir,swim=10,    initial='uniform'),
+    TracerGroup(tag='v12',suffix=7,run_dir=run_dir,swim=0,     initial='uniform'),
+    TracerGroup(tag='v12',suffix=8,run_dir=run_dir,swim=6.912, initial='uniform'),
+    TracerGroup(tag='v12',suffix=9,run_dir=run_dir,swim=6.912j,initial='uniform'),
+]    
+
+
+# v13: lagrangian, diurnal swimming with 80um/day, incl. linearized light
+run_dir="bloom_tracers_v13/run_20220804T1820_20220830T0000_v01"
+tracer_groups += [
+    TracerGroup(tag='v13',suffix=0,run_dir=run_dir,swim=0,initial='alameda'),
+    TracerGroup(tag='v13',suffix=1,run_dir=run_dir,swim=6.912,initial='alameda'),
+    TracerGroup(tag='v13',suffix=2,run_dir=run_dir,swim=6.912j,initial='alameda'),
+    TracerGroup(tag='v13',suffix=3,run_dir=run_dir,swim=0,initial='southbay'),
+    TracerGroup(tag='v13',suffix=4,run_dir=run_dir,swim=6.912,initial='southbay'),
+    TracerGroup(tag='v13',suffix=5,run_dir=run_dir,swim=6.912j,initial='southbay'),
+]
+
+# v14: no-temperature
+run_dir="bloom_tracers_v14/run_20220804T1820_20220830T0000_v00"
+tracer_groups += [
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=0, swim=0,      temp=False, cart_fac=1.07**5, initial='alameda'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=1, swim=6.912,  temp=False, cart_fac=1.07**5, initial='alameda'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=2, swim=6.912j, temp=False, cart_fac=1.07**5, initial='alameda'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=3, swim=0,      temp=False, cart_fac=1.07**5, initial='southbay'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=4, swim=6.912,  temp=False, cart_fac=1.07**5, initial='southbay'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=5, swim=6.912j, temp=False, cart_fac=1.07**5, initial='southbay'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=6, swim=0,      temp=False, cart_fac=1.07**5, initial='uniform'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=7, swim=5.0,    temp=False, cart_fac=1.07**5, initial='uniform'),                        
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=8, swim=6.912,  temp=False, cart_fac=1.07**5, initial='uniform'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=9, swim=6.912j, temp=False, cart_fac=1.07**5, initial='uniform'),
+    TracerGroup(tag='v14', run_dir=run_dir, suffix=10, swim=10.0,  temp=False, cart_fac=1.07**5, initial='uniform'),                        
+]
+
+# v15: diffusion
+run_dir="bloom_tracers_v15/run_20220804T1820_20220830T0000_v00"
+tracer_groups += [
+    TracerGroup(tag='v15', run_dir=run_dir, suffix=0, swim=0,      initial='alameda',  hor_diff=10.0),
+    TracerGroup(tag='v15', run_dir=run_dir, suffix=1, swim=6.912,  initial='alameda',  hor_diff=10.0),
+    TracerGroup(tag='v15', run_dir=run_dir, suffix=2, swim=6.912j, initial='alameda',  hor_diff=10.0),
+    TracerGroup(tag='v15', run_dir=run_dir, suffix=3, swim=0,      initial='southbay', hor_diff=10.0),
+    TracerGroup(tag='v15', run_dir=run_dir, suffix=4, swim=6.912,  initial='southbay', hor_diff=10.0),
+    TracerGroup(tag='v15', run_dir=run_dir, suffix=5, swim=6.912j, initial='southbay', hor_diff=10.0)
+]
+

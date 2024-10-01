@@ -99,11 +99,13 @@ def load_scene_utm(dim_path,clip=None,ravel=True):
 
 def configure_dfm_t141798():
     DELFT_SRC="/opt/anaconda3/envs/dfm_t141798"
+    #DELFT_SRC="/opt/anaconda3/envs/dfm_t141798opt" # fort-collins doesn't have the base compile, but does have opt
     DELFT_SHARE=os.path.join(DELFT_SRC,"share","delft3d")
     DELFT_LIB=os.path.join(DELFT_SRC,"lib")
 
     # So we can do custom processes
     os.environ['PROC_TABLE_SRC_DIR']=os.path.join(DELFT_SRC,"build/dfm/src/src/engines_gpl/waq/default/csvFiles")
+    #os.environ['PROC_TABLE_SRC_DIR']="/richmondvol1/rusty/csvFiles-141798" # for fort-collins and others
     os.environ['DELFT_SRC']=DELFT_SRC
     os.environ['DELFT_SHARE']=DELFT_SHARE
     os.environ['LD_LIBRARY_PATH']=DELFT_LIB
