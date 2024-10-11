@@ -115,7 +115,9 @@ class TracerGroup:
             if Isat==self.IsatA:
                 kLight = ratio( self.cart_fac * snap[f'kRadA{self.suffix}'].values, conc*age_d, thresh)
             elif Isat==self.IsatB:
-                kLight = ratio( self.cart_fac*snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)            
+                kLight = ratio( self.cart_fac*snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)
+            elif Isat==0.0:
+                kLight = np.ones_like(conc)
             else:            
                 kLightA = ratio( self.cart_fac * snap[f'kRadA{self.suffix}'].values, conc*age_d, thresh)
                 kLightB = ratio( self.cart_fac * snap[f'kRadB{self.suffix}'].values, conc*age_d, thresh)
