@@ -315,8 +315,10 @@ def ratio(a,b,b_min=1e-8):
 
 # rs_chl_dir="/richmondvol1/lawrences/outputs_2022/07_reproject_3"
 # 2024-09-11: 07_reproject_3 no longer exists.
-# Assuming this is best to use:
-rs_chl_dir="/richmondvol1/lawrences/outputs_2022/07_reproject_re10_sfei"
+# Had been using this:
+# rs_chl_dir="/richmondvol1/lawrences/outputs_2022/07_reproject_re10_sfei"
+# 2024-10-11: Dave suggests this is the best to use:
+rs_chl_dir="/richmondvol1/lawrences/outputs_2022/07_reproject_re10_raphe"
 
 def chl_from_RS(t,grid_poly):
     patt = os.path.join(rs_chl_dir, f"{utils.strftime(t,'%Y%m%d')}_S3*_OL_NT_CHL_LOG10.img")
