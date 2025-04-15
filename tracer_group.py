@@ -306,3 +306,13 @@ tracer_groups += [
     TracerGroup(tag='v15', run_dir=run_dir, suffix=5, swim=6.912j, initial='southbay', hor_diff=10.0)
 ]
 
+# v16: new Kd field
+run_dir="bloom_tracers_v16/run_20220804T1820_20220830T0000_v00"
+tracer_groups += [
+    TracerGroup(tag='v16',suffix=0,run_dir=run_dir,swim=0,     initial='alameda'),
+    TracerGroup(tag='v16',suffix=1,run_dir=run_dir,swim=6.912, initial='alameda'),
+    TracerGroup(tag='v16',suffix=2,run_dir=run_dir,swim=6.912j,initial='alameda'),
+    TracerGroup(tag='v16',suffix=3,run_dir=run_dir,swim=0,     initial='southbay'),
+    TracerGroup(tag='v16',suffix=4,run_dir=run_dir,swim=6.912, initial='southbay'),
+    TracerGroup(tag='v16',suffix=5,run_dir=run_dir,swim=6.912j,initial='southbay'),
+]    
