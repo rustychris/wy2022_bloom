@@ -2,12 +2,12 @@ from stompy import memoize, utils, xr_utils
 from bloom_common import load_model, ratio
 import matplotlib.pyplot as plt
 import xarray as xr
+import pandas as pd
 import numpy as np
 import stompy.plot.cmap as scmap
 from matplotlib import cm, colors
 
 disc_viridis=scmap.cmap_discretize(cm.viridis,6)
-
 
 class TracerGroup:
     tag=None
@@ -135,6 +135,27 @@ class TracerGroup:
         #kLight = fill(kLight, iterations=120)
         #print(f"kLight: {np.isnan(kLight).sum()} missing values, thresh={thresh}")
         return dict(age_d=age_d, conc=conc, kLight=kLight, Imean=Imean, t=t)  
+
+    @memoize.imemoize()
+    def extract_timeseries(self,tidxs,cells,layer):
+        # does *not* populate kLight, but should put enough data in the resulting
+        # DataFrame to later calculate kLight via calc_kLight() above
+        assert layer!='mean'
+        assert len(tidxs) == len(cells)
+        recs=[]
+        
+        for tidx,cell in utils.progress(zip(tidxs,cells),count=len(tidxs)):
+            t=self.ds.time.isel(time=tidx).values
+            age_d = (t - self.ds.time.values[0]) / np.timedelta64(86400,'s')
+
+            conc  = self.ds[f'conc{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+            kRadA = self.cart_fac*self.ds[f'kRadA{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+            kRadB = self.cart_fac*self.ds[f'kRadB{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+
+            rec=dict(age_d=age_d, conc=conc, t=t,
+                     kRadA=kRadA,IsatA=self.IsatA,kRadB=kRadB,IsatB=self.IsatB)
+            recs.append(rec)
+        return pd.DataFrame(recs)
     
     @memoize.imemoize()
     def profile_cell_dists(self,linestring):

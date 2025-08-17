@@ -306,9 +306,13 @@ def load_model(run_dir):
     return model
 
 def ratio(a,b,b_min=1e-8):
-    a_b = a/b.clip(b_min)
+    a_b = a/np.clip(b,b_min,None)
     # avoid using np.where, since it loses xarray dimensions.
-    a_b[b<b_min] = np.nan
+    if np.isscalar(a_b):
+        if b<b_min:
+            return np.nan
+    else:
+        a_b[b<b_min] = np.nan
     return a_b
 
 
@@ -341,3 +345,26 @@ def chl_from_RS(t,grid_poly):
     chl_IC.F = 10**chl_IC.F    
         
     return chl_IC
+
+def calc_kLight(Isat,kRadA,IsatA,kRadB,IsatB,conc,age_d,thresh=1e-5,**other):
+    if Isat==IsatA:
+        kLight = ratio( kRadA, conc*age_d, thresh)
+    elif Isat==IsatB:
+        kLight = ratio( kRadB, conc*age_d, thresh)
+    elif Isat==0.0:
+        kLight = 1.0
+    else:
+        kLightA = ratio( kRadA, conc*age_d, thresh)
+        kLightB = ratio( kRadB, conc*age_d, thresh)
+
+        # Fit the line directly
+        log_kLightA = np.log(np.clip(kLightA,1e-5,1.0))
+        log_kLightB = np.log(np.clip(kLightB,1e-5,1.0))
+        log_kLight_slope = (log_kLightB - log_kLightA) / (IsatB - IsatA)
+        # m*IsatA+b=log_fA
+        log_kLight0 = log_kLightA - log_kLight_slope*IsatA
+        kLight0 = np.exp(log_kLight0)
+        kLight = kLight0*np.exp(log_kLight_slope*Isat)
+    if kLight<=0:
+        kLight=np.nan
+    return kLight
