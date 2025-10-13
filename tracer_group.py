@@ -142,19 +142,39 @@ class TracerGroup:
         # DataFrame to later calculate kLight via calc_kLight() above
         assert layer!='mean'
         assert len(tidxs) == len(cells)
-        recs=[]
-        
-        for tidx,cell in utils.progress(zip(tidxs,cells),count=len(tidxs)):
+
+        # Would like to make this faster when either all tidxs are the same or all
+        # cells are the same.
+
+        if len(np.unique(tidxs))==1:
+            # Optimize for single snapshot in time:
+            print("TracerGroup Extract multiple cells, single time step")
+            tidx=tidxs[0]
             t=self.ds.time.isel(time=tidx).values
             age_d = (t - self.ds.time.values[0]) / np.timedelta64(86400,'s')
 
-            conc  = self.ds[f'conc{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
-            kRadA = self.cart_fac*self.ds[f'kRadA{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
-            kRadB = self.cart_fac*self.ds[f'kRadB{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+            all_conc  = self.ds[f'conc{self.suffix}'].isel(time=tidx,laydim=layer).values
+            all_kRadA = self.cart_fac*self.ds[f'kRadA{self.suffix}'].isel(time=tidx,laydim=layer).values
+            all_kRadB = self.cart_fac*self.ds[f'kRadB{self.suffix}'].isel(time=tidx,laydim=layer).values
 
-            rec=dict(age_d=age_d, conc=conc, t=t,
-                     kRadA=kRadA,IsatA=self.IsatA,kRadB=kRadB,IsatB=self.IsatB)
-            recs.append(rec)
+            recs=[dict(age_d=age_d, conc=all_conc[cell], t=t,
+                       kRadA=all_kRadA[cell],IsatA=self.IsatA,kRadB=all_kRadB[cell],IsatB=self.IsatB)
+                  for cell in cells]
+        else:
+            print("TracerGroup Extract time series")
+            # Generic loop over time and cells:
+            recs=[]
+            for tidx,cell in utils.progress(zip(tidxs,cells),count=len(tidxs)):
+                t=self.ds.time.isel(time=tidx).values
+                age_d = (t - self.ds.time.values[0]) / np.timedelta64(86400,'s')
+
+                conc  = self.ds[f'conc{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+                kRadA = self.cart_fac*self.ds[f'kRadA{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+                kRadB = self.cart_fac*self.ds[f'kRadB{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+
+                rec=dict(age_d=age_d, conc=conc, t=t,
+                         kRadA=kRadA,IsatA=self.IsatA,kRadB=kRadB,IsatB=self.IsatB)
+                recs.append(rec)
         return pd.DataFrame(recs)
     
     @memoize.imemoize()
@@ -336,4 +356,15 @@ tracer_groups += [
     TracerGroup(tag='v16',suffix=3,run_dir=run_dir,swim=0,     initial='southbay'),
     TracerGroup(tag='v16',suffix=4,run_dir=run_dir,swim=6.912, initial='southbay'),
     TracerGroup(tag='v16',suffix=5,run_dir=run_dir,swim=6.912j,initial='southbay'),
+]    
+
+# v17: same as v16 but runs into September
+run_dir="bloom_tracers_v17/run_20220804T1820_20220905T0000_v00"
+tracer_groups += [
+    TracerGroup(tag='v17',suffix=0,run_dir=run_dir,swim=0,     initial='alameda'),
+    TracerGroup(tag='v17',suffix=1,run_dir=run_dir,swim=6.912, initial='alameda'),
+    TracerGroup(tag='v17',suffix=2,run_dir=run_dir,swim=6.912j,initial='alameda'),
+    TracerGroup(tag='v17',suffix=3,run_dir=run_dir,swim=0,     initial='southbay'),
+    TracerGroup(tag='v17',suffix=4,run_dir=run_dir,swim=6.912, initial='southbay'),
+    TracerGroup(tag='v17',suffix=5,run_dir=run_dir,swim=6.912j,initial='southbay'),
 ]    
