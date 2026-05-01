@@ -140,13 +140,13 @@ class TracerGroup:
     def extract_timeseries(self,tidxs,cells,layer):
         # does *not* populate kLight, but should put enough data in the resulting
         # DataFrame to later calculate kLight via calc_kLight() above
-        assert layer!='mean'
         assert len(tidxs) == len(cells)
 
         # Would like to make this faster when either all tidxs are the same or all
         # cells are the same.
 
         if len(np.unique(tidxs))==1:
+            assert layer!='mean', "Multiple cells not ready for layer='mean'"
             # Optimize for single snapshot in time:
             print("TracerGroup Extract multiple cells, single time step")
             tidx=tidxs[0]
@@ -158,22 +158,50 @@ class TracerGroup:
             all_kRadB = self.cart_fac*self.ds[f'kRadB{self.suffix}'].isel(time=tidx,laydim=layer).values
 
             recs=[dict(age_d=age_d, conc=all_conc[cell], t=t,
+                       surface_to_mean=np.nan,
                        kRadA=all_kRadA[cell],IsatA=self.IsatA,kRadB=all_kRadB[cell],IsatB=self.IsatB)
                   for cell in cells]
         else:
             print("TracerGroup Extract time series")
             # Generic loop over time and cells:
+            if layer=='mean':
+                assert self.ds['LayCoord_w'].attrs['standard_name']=='ocean_sigma_coordinate',"layer mean only supports sigma layers"
+                sigma_interface=self.ds['LayCoord_w'].values
+                layer_weights=np.diff(sigma_interface)
+                layer_weights = layer_weights/layer_weights.sum() # should be 1.0 already
+            else:
+                layer_weights=None
+                
             recs=[]
             for tidx,cell in utils.progress(zip(tidxs,cells),count=len(tidxs)):
                 t=self.ds.time.isel(time=tidx).values
                 age_d = (t - self.ds.time.values[0]) / np.timedelta64(86400,'s')
 
-                conc  = self.ds[f'conc{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
-                kRadA = self.cart_fac*self.ds[f'kRadA{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
-                kRadB = self.cart_fac*self.ds[f'kRadB{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+                if layer!='mean':
+                    conc  = self.ds[f'conc{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+                    kRadA = self.cart_fac*self.ds[f'kRadA{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+                    kRadB = self.cart_fac*self.ds[f'kRadB{self.suffix}'].isel(time=tidx,laydim=layer,nFlowElem=cell).item()
+                    surface_to_mean=np.nan
+                else:
+                    conc_z  = self.ds[f'conc{self.suffix}'].isel(time=tidx,nFlowElem=cell).values
+                    kRadA_z = self.cart_fac*self.ds[f'kRadA{self.suffix}'].isel(time=tidx,nFlowElem=cell).values
+                    kRadB_z = self.cart_fac*self.ds[f'kRadB{self.suffix}'].isel(time=tidx,nFlowElem=cell).values
+                    conc  = (layer_weights*conc_z).sum() # depth-averaged concentration
+                    # biomass averaged growth rate
+                    bio_weights=conc_z*layer_weights
+                    bio_sum=bio_weights.sum()
+                    if(bio_sum>1e-6):
+                        bio_weights *= 1/bio_sum
+                        surface_to_mean=conc_z[-1] / conc
+                    else:
+                        bio_weights=layer_weights
+                        surface_to_mean = 1.0
+                    kRadA = (bio_weights*kRadA_z).sum()
+                    kRadB = (bio_weights*kRadB_z).sum()
 
                 rec=dict(age_d=age_d, conc=conc, t=t,
-                         kRadA=kRadA,IsatA=self.IsatA,kRadB=kRadB,IsatB=self.IsatB)
+                         kRadA=kRadA,IsatA=self.IsatA,kRadB=kRadB,IsatB=self.IsatB,
+                         surface_to_mean=surface_to_mean)
                 recs.append(rec)
         return pd.DataFrame(recs)
     
