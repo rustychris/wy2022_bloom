@@ -173,7 +173,7 @@ class TracerGroup:
                 layer_weights=None
                 
             recs=[]
-            for tidx,cell in utils.progress(zip(tidxs,cells),count=len(tidxs)):
+            for tidx,cell in utils.progress(zip(tidxs,cells),count=len(tidxs),msg="Extract tidx and cell: %s"):
                 t=self.ds.time.isel(time=tidx).values
                 age_d = (t - self.ds.time.values[0]) / np.timedelta64(86400,'s')
 
