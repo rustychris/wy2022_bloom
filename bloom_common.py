@@ -324,6 +324,21 @@ def ratio(a,b,b_min=1e-8):
 # 2024-10-11: Dave suggests this is the best to use:
 rs_chl_dir="/richmondvol1/lawrences/outputs_2022/07_reproject_re10_raphe"
 
+def chl_from_RS_times():
+    """
+    Return list of np.datetime64 for available RS chl scenes.
+    """
+    patt = os.path.join(rs_chl_dir, f"20[0-9][0-9][0-9][0-9][0-9][0-9]_S3*_OL_NT_CHL_LOG10.img")
+    hits=glob.glob(patt)
+    hits.sort()
+    # sentinel 3 flyover times are 1800 - 1930 UTC for the Bay area (ref: AI and the
+    # filenames of the raw data).
+    # Add nominal offset to these.
+    flyover_offset = np.timedelta64(int(18.5*3600),'s')
+    return [np.datetime64( datetime.datetime.strptime( os.path.basename(h)[:8],
+                                                                        "%Y%m%d") ) + flyover_offset 
+            for h in hits]
+    
 def chl_from_RS(t,grid_poly):
     patt = os.path.join(rs_chl_dir, f"{utils.strftime(t,'%Y%m%d')}_S3*_OL_NT_CHL_LOG10.img")
     hits=glob.glob(patt)
