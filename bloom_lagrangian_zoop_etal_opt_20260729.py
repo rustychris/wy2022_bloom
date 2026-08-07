@@ -11,26 +11,18 @@
 # This version builds on bloom_lagrangian_zoop_etal_tuning, and continues the work on 
 # parameter optimization.
 
-# In[6]:
-
-
 import matplotlib.pyplot as plt
-get_ipython().run_line_magic('matplotlib', 'widget')
 
 
-# In[7]:
 
-
-import sys
-s="/richmondvol1/rusty/stompy"
-if s not in sys.path: sys.path.append(s) 
+#import sys
+#s="/richmondvol1/rusty/stompy"
+#if s not in sys.path: sys.path.append(s)
     
 from importlib import reload
 import time
 import datetime
 import os
-
-from IPython.display import Video
 
 import matplotlib.colorbar as cbar
 import pandas as pd
@@ -52,18 +44,16 @@ from stompy.grid import unstructured_grid
 
 # In[8]:
 
-
 # These are online-coupled dfm-dwaq runs.
 import bloom_common
-reload(bloom_common)
 from bloom_common import load_model, ratio, chl_from_RS
 
 
 # In[9]:
 
-
 turbo_low = scmap.cmap_transform(cm.turbo,lambda i: i**0.75)
 
+# In[
 
 # Load Supporting Data
 # ==
