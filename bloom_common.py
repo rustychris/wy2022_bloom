@@ -382,4 +382,5 @@ def calc_kLight(Isat,kRadA,IsatA,kRadB,IsatB,conc,age_d,thresh=1e-5,**other):
         kLight = kLight0*np.exp(log_kLight_slope*Isat)
     if kLight<=0:
         kLight=np.nan
-    return kLight
+    return min(kLight,1.0)
+
