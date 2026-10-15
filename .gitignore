@@ -10,7 +10,7 @@ depth-avg-growth-rates.nc
 __pycache__
 *~
 dfm_spinup
-data_*
+data_*dfm*
 bloom_tracers_v*
 rotodfm_v*
 /sea_temp_buoy_*.tim
@@ -40,3 +40,4 @@ cimis
 lawrences
 wy2022_r52184
 .idea
+plot_dfm_temperature_20260813_DBS.ipynb
